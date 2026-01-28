@@ -219,6 +219,9 @@ function initScrollProgress() {
 
 // ===== TRAE-STYLE CURSOR & DISCO EFFECT =====
 function initTraeCursorEffect() {
+    // Check if mobile
+    const isMobile = window.innerWidth < 768;
+
     // Create border glow container
     const borderGlow = document.createElement('div');
     borderGlow.className = 'trae-border-glow';
@@ -232,18 +235,22 @@ function initTraeCursorEffect() {
         borderGlow.appendChild(cornerGlow);
     });
 
-    // Create cursor elements
-    const spotlight = document.createElement('div');
-    spotlight.className = 'trae-cursor-spotlight';
-    document.body.appendChild(spotlight);
+    // Create cursor elements (Only create on desktop to save DOM weight on mobile)
+    let spotlight, cursorDot, cursorRing;
 
-    const cursorDot = document.createElement('div');
-    cursorDot.className = 'trae-cursor-dot';
-    document.body.appendChild(cursorDot);
+    if (!isMobile) {
+        spotlight = document.createElement('div');
+        spotlight.className = 'trae-cursor-spotlight';
+        document.body.appendChild(spotlight);
 
-    const cursorRing = document.createElement('div');
-    cursorRing.className = 'trae-cursor-ring';
-    document.body.appendChild(cursorRing);
+        cursorDot = document.createElement('div');
+        cursorDot.className = 'trae-cursor-dot';
+        document.body.appendChild(cursorDot);
+
+        cursorRing = document.createElement('div');
+        cursorRing.className = 'trae-cursor-ring';
+        document.body.appendChild(cursorRing);
+    }
 
     let mouseX = window.innerWidth / 2;
     let mouseY = window.innerHeight / 2;
@@ -268,21 +275,11 @@ function initTraeCursorEffect() {
 
     // Gyroscope tracking (Mobile Tilt)
     window.addEventListener('deviceorientation', (e) => {
-        // Use tilt to influence position slightly if no touch interaction
-        // Gamma: Left/Right tilt (-90 to 90)
-        // Beta: Front/Back tilt (-180 to 180)
         if (!e.gamma || !e.beta) return;
 
         const tiltX = (e.gamma / 45) * (window.innerWidth / 2);
         const tiltY = (e.beta / 45) * (window.innerHeight / 2);
 
-        // Add tilt offset to center
-        // Only apply if user isn't actively touching (optional, or blend them)
-        // For now, let's make it subtle ambient movement
-        // mouseX += tiltX * 0.05; 
-        // mouseY += tiltY * 0.05;
-
-        // Update border intensity based on tilt
         updateBorderGlow(window.innerWidth / 2 + tiltX, window.innerHeight / 2 + tiltY);
     });
 
@@ -309,23 +306,25 @@ function initTraeCursorEffect() {
 
     // Animation loop
     function animate() {
-        const spotlightSpeed = 0.08;
-        spotlightX += (mouseX - spotlightX) * spotlightSpeed;
-        spotlightY += (mouseY - spotlightY) * spotlightSpeed;
-        spotlight.style.left = `${spotlightX}px`;
-        spotlight.style.top = `${spotlightY}px`;
+        if (!isMobile && spotlight && cursorDot && cursorRing) {
+            const spotlightSpeed = 0.08;
+            spotlightX += (mouseX - spotlightX) * spotlightSpeed;
+            spotlightY += (mouseY - spotlightY) * spotlightSpeed;
+            spotlight.style.left = `${spotlightX}px`;
+            spotlight.style.top = `${spotlightY}px`;
 
-        const dotSpeed = 0.25;
-        dotX += (mouseX - dotX) * dotSpeed;
-        dotY += (mouseY - dotY) * dotSpeed;
-        cursorDot.style.left = `${dotX}px`;
-        cursorDot.style.top = `${dotY}px`;
+            const dotSpeed = 0.25;
+            dotX += (mouseX - dotX) * dotSpeed;
+            dotY += (mouseY - dotY) * dotSpeed;
+            cursorDot.style.left = `${dotX}px`;
+            cursorDot.style.top = `${dotY}px`;
 
-        const ringSpeed = 0.12;
-        ringX += (mouseX - ringX) * ringSpeed;
-        ringY += (mouseY - ringY) * ringY;
-        cursorRing.style.left = `${ringX}px`;
-        cursorRing.style.top = `${ringY}px`;
+            const ringSpeed = 0.12;
+            ringX += (mouseX - ringX) * ringSpeed;
+            ringY += (mouseY - ringY) * ringY; // Smoother trailing
+            cursorRing.style.left = `${ringX}px`;
+            cursorRing.style.top = `${ringY}px`;
+        }
 
         requestAnimationFrame(animate);
     }
@@ -333,34 +332,33 @@ function initTraeCursorEffect() {
     animate();
 
     // Click/Touch interactions
-    const clickHandler = () => {
-        cursorRing.style.transform = 'translate(-50%, -50%) scale(1.5)';
-        cursorDot.style.transform = 'translate(-50%, -50%) scale(0.8)';
-        setTimeout(() => {
-            cursorRing.style.transform = 'translate(-50%, -50%) scale(1)';
-            cursorDot.style.transform = 'translate(-50%, -50%) scale(1)';
-        }, 150);
-    };
-
-    document.addEventListener('mousedown', clickHandler);
-    document.addEventListener('touchstart', clickHandler, { passive: true });
-
-    // Hover states
-    const hoverElements = document.querySelectorAll('a, button, .product-card');
-    hoverElements.forEach(el => {
-        const enter = () => {
-            cursorRing.classList.add('hover');
-            cursorDot.classList.add('hover');
+    if (!isMobile) {
+        const clickHandler = () => {
+            cursorRing.style.transform = 'translate(-50%, -50%) scale(1.5)';
+            cursorDot.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            setTimeout(() => {
+                cursorRing.style.transform = 'translate(-50%, -50%) scale(1)';
+                cursorDot.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 150);
         };
-        const leave = () => {
-            cursorRing.classList.remove('hover');
-            cursorDot.classList.remove('hover');
-        };
-        el.addEventListener('mouseenter', enter);
-        el.addEventListener('mouseleave', leave);
-        el.addEventListener('touchstart', enter, { passive: true });
-        el.addEventListener('touchend', leave, { passive: true });
-    });
+
+        document.addEventListener('mousedown', clickHandler);
+
+        // Hover states
+        const hoverElements = document.querySelectorAll('a, button, .product-card');
+        hoverElements.forEach(el => {
+            const enter = () => {
+                cursorRing.classList.add('hover');
+                cursorDot.classList.add('hover');
+            };
+            const leave = () => {
+                cursorRing.classList.remove('hover');
+                cursorDot.classList.remove('hover');
+            };
+            el.addEventListener('mouseenter', enter);
+            el.addEventListener('mouseleave', leave);
+        });
+    }
 }
 
 // ===== MAGNETIC BUTTON EFFECT (Updated for Touch) =====
@@ -378,6 +376,8 @@ function initMagneticButtons() {
 
     magneticElements.forEach(el => {
         el.addEventListener('mousemove', (e) => applyMagnet(el, e.clientX, e.clientY));
+
+        // Touch Magnetic Effect
         el.addEventListener('touchmove', (e) => {
             const touch = e.touches[0];
             applyMagnet(el, touch.clientX, touch.clientY);
@@ -477,7 +477,7 @@ console.log('%c VIBE ', 'background: linear-gradient(135deg, #F47B6C, #F89A8E); 
 console.log('%c Own the Edge, Keep the Vibe ', 'color: #F47B6C; font-size: 14px; font-style: italic;');
 console.log('%c TRAE Cursor Effect Enabled ✨ ', 'color: #2D8C7F; font-size: 12px;');
 
-// ===== VIBE CANVAS TEXT DISTORTION (Shining Disco Version) =====
+// ===== VIBE CANVAS TEXT DISTORTION (Laser Disco & Gyro Version) =====
 function initVybeCanvas() {
     const canvas = document.getElementById('vybeCanvas');
     if (!canvas) return;
@@ -491,6 +491,36 @@ function initVybeCanvas() {
     const text = 'VIBE';
     let hue = 0; // For disco color cycling
 
+    // Gyroscope Permission logic
+    const motionBtn = document.getElementById('enableMotionBtn');
+
+    // Show button if iOS 13+ permission is needed
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        motionBtn.style.display = 'block';
+        motionBtn.addEventListener('click', () => {
+            DeviceOrientationEvent.requestPermission()
+                .then(response => {
+                    if (response === 'granted') {
+                        motionBtn.style.display = 'none';
+                        window.addEventListener('deviceorientation', handleGyro);
+                    } else {
+                        alert('Permission needed for VIBE effects!');
+                    }
+                })
+                .catch(console.error);
+        });
+    } else {
+        // Non-iOS or older devices usually allow by default
+        window.addEventListener('deviceorientation', handleGyro);
+    }
+
+    function handleGyro(e) {
+        if (!e.gamma || isHovering) return;
+        const tilt = e.gamma / 2;
+        mouseX = width / 2 + tilt * 8;
+        mouseY = height / 2 + (e.beta - 45) * 5;
+    }
+
     function resize() {
         width = canvas.offsetWidth;
         height = canvas.offsetHeight;
@@ -501,9 +531,10 @@ function initVybeCanvas() {
 
     function createTextParticles() {
         particles = [];
-        // Reduce particle count on mobile for performance
-        const isMobile = window.innerWidth < 768;
-        const density = isMobile ? 8 : 5; // Higher number = fewer particles
+        // Reduce particle count significantly (10% density)
+        // Previous gap was 6 or density 5/8. 
+        // New gap: 15 (creates fewer, more spaced out particles for "laser grid" look)
+        const gap = 15;
 
         const fontSize = Math.min(width * 0.3, height * 0.8);
         ctx.font = `900 ${fontSize}px Outfit, sans-serif`;
@@ -517,8 +548,8 @@ function initVybeCanvas() {
         const imageData = ctx.getImageData(0, 0, width, height);
         const data = imageData.data;
 
-        for (let y = 0; y < height; y += density) {
-            for (let x = 0; x < width; x += density) {
+        for (let y = 0; y < height; y += gap) {
+            for (let x = 0; x < width; x += gap) {
                 const index = (y * width + x) * 4;
                 const alpha = data[index + 3];
 
@@ -526,10 +557,9 @@ function initVybeCanvas() {
                     particles.push({
                         x: x, y: y,
                         originX: x, originY: y,
-                        size: isMobile ? density * 0.6 : density * 0.7,
+                        size: gap * 0.6, // Smaller dots
                         color: '#F47B6C',
-                        baseColor: '#F47B6C',
-                        isSparkling: false
+                        vx: 0, vy: 0
                     });
                 }
             }
@@ -544,57 +574,74 @@ function initVybeCanvas() {
     function animate() {
         ctx.clearRect(0, 0, width, height);
 
-        // Cycle hue for disco effect
-        hue = (hue + 1) % 360;
-        const discoColor = `hsl(${hue}, 100%, 70%)`; // Dynamic neon color
+        // Cycle hue for disco laser
+        hue = (hue + 2) % 360; // Faster cycle for high energy
+        const discoColor = `hsl(${hue}, 100%, 60%)`;
 
-        const effectRadius = window.innerWidth < 768 ? 80 : 120;
-        const pushStrength = 60;
+        const effectRadius = window.innerWidth < 768 ? 100 : 180; // Larger interaction radius
+        const pushStrength = 40;
 
+        // Draw Particles
         particles.forEach(p => {
             const dist = distance(mouseX, mouseY, p.originX, p.originY);
-
-            // Randomly sparkle (white flash)
-            if (Math.random() > 0.98) {
-                p.isSparkling = true;
-                setTimeout(() => { p.isSparkling = false; }, 200);
-            }
 
             if (isHovering && dist < effectRadius) {
                 const angle = Math.atan2(p.originY - mouseY, p.originX - mouseX);
                 const force = (effectRadius - dist) / effectRadius;
 
-                const glitchX = (Math.random() - 0.5) * force * 20;
-                const glitchY = (Math.random() - 0.5) * force * 20;
+                // Add more randomness for "scattered laser" look
+                p.x = p.originX + Math.cos(angle) * force * pushStrength + (Math.random() - 0.5) * 10;
+                p.y = p.originY + Math.sin(angle) * force * pushStrength + (Math.random() - 0.5) * 10;
 
-                p.x = p.originX + Math.cos(angle) * force * pushStrength + glitchX;
-                p.y = p.originY + Math.sin(angle) * force * pushStrength + glitchY;
-
-                // Active particles get full disco treatment
-                p.color = Math.random() > 0.5 ? '#ffffff' : discoColor;
+                p.color = discoColor;
             } else {
+                // Spring back
                 p.x += (p.originX - p.x) * 0.1;
                 p.y += (p.originY - p.y) * 0.1;
-
-                // Resting particles have subtle sheen or base coral
-                // "Shining Disco" ambient effect
-                if (p.isSparkling) {
-                    p.color = '#ffffff';
-                } else {
-                    // Slight color shift based on position for "shining" gradient effect
-                    p.color = '#F47B6C';
-                }
+                p.color = '#F47B6C';
             }
 
+            // Draw rounded particle
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
             ctx.fillStyle = p.color;
-            ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+            ctx.fill();
+            ctx.closePath();
         });
 
-        // Scanline effect
+        // === LASER CONNECTION EFFECT ===
+        // Connect particles that are close to each other with lines
+        // Only do this on hover or if Gyro is active (performance check)
+
+        // Optimization: Only check a subset or nearby particles
+        // For simplicity in this demo, we'll just connect active/moved particles to mouse
+
         if (isHovering) {
-            const scanY = (Date.now() % 1000) / 1000 * height;
-            ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.1)`; // Neon scanline
-            ctx.fillRect(0, scanY, width, 4);
+            ctx.beginPath();
+            ctx.strokeStyle = `hsla(${hue}, 100%, 70%, 0.2)`;
+            ctx.lineWidth = 1;
+
+            particles.forEach(p => {
+                const dist = distance(mouseX, mouseY, p.x, p.y);
+                if (dist < 100) {
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(mouseX, mouseY);
+                }
+            });
+            ctx.stroke();
+
+            // Draw Laser Sweep scanline
+            const time = Date.now() * 0.002;
+            const scanY = (Math.sin(time) * 0.5 + 0.5) * height;
+
+            ctx.fillStyle = `linear-gradient(90deg, transparent, hsla(${hue}, 100%, 80%, 0.8), transparent)`;
+            ctx.fillRect(0, scanY - 2, width, 4);
+
+            // Laser glow
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = discoColor;
+        } else {
+            ctx.shadowBlur = 0;
         }
 
         requestAnimationFrame(animate);
@@ -613,22 +660,12 @@ function initVybeCanvas() {
 
     // Touch
     canvas.addEventListener('touchmove', e => {
-        e.preventDefault(); // Prevent scrolling while interacting with canvas
+        e.preventDefault();
         const touch = e.touches[0];
         updatePos(touch.clientX, touch.clientY);
     }, { passive: false });
 
     canvas.addEventListener('touchend', () => { isHovering = false; });
-
-    // Gyroscope shift for canvas particles (Mobile)
-    window.addEventListener('deviceorientation', (e) => {
-        if (!e.gamma || isHovering) return; // Only ambient if not touching
-        const tilt = e.gamma / 2; // -45 to 45
-        mouseX = width / 2 + tilt * 5;
-        mouseY = height / 2;
-        // Don't set isHovering=true for ambient tilt to avoid constant explosion
-        // Just let them settle gently or use a separate "ambientDisturbance" mode if desired
-    });
 
     window.addEventListener('resize', resize);
     resize();

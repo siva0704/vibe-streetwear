@@ -2378,7 +2378,53 @@ section {
     }
 }
 
+/* Motion Permission Button */
+.motion-btn {
+    display: none;
+    /* Hidden by default, shown by JS if needed */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(10, 10, 10, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--coral);
+    color: var(--coral);
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    z-index: 20;
+    box-shadow: 0 0 20px rgba(244, 123, 108, 0.2);
+    transition: all 0.3s ease;
+}
+
+.motion-btn:hover,
+.motion-btn:active {
+    background: var(--coral);
+    color: white;
+    box-shadow: 0 0 30px rgba(244, 123, 108, 0.6);
+}
+
+/* Cursor effects on mobile */
 @media (max-width: 768px) {
+
+    /* Hide custom cursor elements on mobile to prevent layout issues/lag */
+    .trae-cursor-spotlight,
+    .trae-cursor-dot,
+    .trae-cursor-ring {
+        display: none !important;
+    }
+
+    /* Keep border glow visible */
+
+    body {
+        cursor: auto;
+    }
+
     .vybe-canvas-section {
         height: 300px;
     }
